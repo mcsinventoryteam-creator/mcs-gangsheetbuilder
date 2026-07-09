@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MCS Jotform Gangsheet Builder</title>
+<style>
+:root{--black:#111;--gray:#f5f5f5;--border:#ddd;--text:#222}
+*{box-sizing:border-box;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+body{margin:0;font-family:Arial,sans-serif;background:#f6f6f6;color:var(--text)}
+.header{background:var(--black);color:#fff;padding:18px 24px;display:flex;align-items:center;justify-content:space-between;gap:15px}
+.header h1{margin:0;font-size:26px;letter-spacing:.5px}.count{font-size:18px;white-space:nowrap}.wrap{padding:16px}.top-grid{display:grid;grid-template-columns:1.15fr 1fr;gap:16px}.box{background:#fff;border-radius:12px;box-shadow:0 2px 10px #0001;padding:16px}.preview-title{text-align:center;margin:0 0 12px}.sheet-preview-shell{display:flex;justify-content:center;align-items:flex-start;min-height:420px;background:#fafafa;border:1px solid var(--border);border-radius:10px;padding:14px;overflow:auto}.sheet-preview{width:220px;min-height:340px;background-image:linear-gradient(45deg,#eee 25%,transparent 25%),linear-gradient(-45deg,#eee 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#eee 75%),linear-gradient(-45deg,transparent 75%,#eee 75%);background-size:20px 20px;background-position:0 0,0 10px,10px -10px,-10px 0;border:2px solid #111;position:relative}.empty-preview{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;color:#777;font-weight:bold;padding:20px}.sheet-info{text-align:center;margin-top:10px;font-weight:bold}.drop-zone{margin-top:8px;padding:22px;border:2px dashed #999;border-radius:10px;background:#fff;text-align:center;cursor:pointer;transition:.2s}.drop-zone:hover,.drop-zone.dragover{background:#f0f0f0;border-color:#111}.drop-zone-text{font-weight:bold;margin-bottom:5px}.drop-zone-note{font-size:13px;color:#555}#imageUpload{display:none}label{display:block;margin-top:15px;font-weight:bold}input,select{width:100%;padding:10px;margin-top:6px;border:1px solid #ccc;border-radius:6px;font-size:15px}.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}.image-preview-wrap{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:center;margin-top:16px}.image-preview{min-height:150px;border:1px solid #ddd;border-radius:10px;background:#fafafa;display:flex;align-items:center;justify-content:center;padding:10px;text-align:center;color:#777}.image-preview img{max-width:100%;max-height:180px}.btn{width:100%;border:0;border-radius:7px;background:#111;color:#fff;padding:13px;font-size:16px;cursor:pointer}.btn:hover{background:#333}.btn.secondary{background:#555}.btn.danger{background:#c62828;padding:8px 10px;font-size:14px}.button-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px}.list-box{margin-top:16px;overflow:auto}table{width:100%;border-collapse:collapse;margin-top:12px;background:#fff}th,td{border:1px solid #ddd;padding:10px;text-align:left;vertical-align:middle;font-size:15px}th{background:#eee}.thumb{max-width:90px;max-height:90px;display:block}.note{font-size:13px;color:#555;margin-top:8px;line-height:1.35}.hidden{display:none!important}
+.height-meter{margin-top:10px;background:#eee;border-radius:999px;overflow:hidden;height:14px;border:1px solid #ddd}
+.height-meter-fill{height:100%;width:0%;background:#111;transition:width .2s}
+.height-stats{text-align:center;font-size:13px;color:#555;margin-top:6px;line-height:1.4}
+@media(max-width:850px){.top-grid,.form-row,.image-preview-wrap,.button-row{grid-template-columns:1fr}.header{align-items:flex-start;flex-direction:column}.sheet-preview-shell{min-height:300px}}
+@media print{.form-box,.button-row,.drop-zone,.btn.danger,.header .count{display:none!important}body{background:#fff}.box{box-shadow:none}.top-grid{display:block}.sheet-preview-shell{border:0}.list-box{overflow:visible}}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>MCS GANGSHEET BUILDER</h1>
+  <div class="count">🛍️ Listing Count: <span id="listingCount">0</span></div>
+</div>
+
+
+<div style="background:#fff8e1;border:1px solid #f0d98c;border-radius:10px;padding:12px 16px;margin:16px;font-family:Arial,sans-serif;color:#222;line-height:1.4;">
+  <strong>Instructions:</strong> Upload your designs, enter the print width, add quantities, then click <strong>Save 22&quot; Wide 300dpi PNG</strong>. After downloading, return to the order form and upload the finished gang sheet PNG.
+</div>
+<div class="wrap">
+  <div class="top-grid">
+    <div class="box">
+      <h3 class="preview-title">Gangsheet Preview</h3>
+      <div class="sheet-preview-shell">
+        <div id="sheetPreview" class="sheet-preview"><div class="empty-preview">Gangsheet preview will appear here</div></div>
+      </div>
+      <div id="sheetInfo" class="sheet-info">22" wide x 0" tall</div>
+      <div class="height-meter"><div id="heightMeterFill" class="height-meter-fill"></div></div>
+      <div id="heightStats" class="height-stats">Used: 0" | Remaining: 96"</div>
+    </div>
+
+    <div class="box form-box">
+      <label>Upload Image</label>
+      <div id="dropZone" class="drop-zone">
+        <div class="drop-zone-text">Drag & drop image here</div>
+        <div class="drop-zone-note">or click to choose PNG, JPG, or JPEG</div>
+      </div>
+      <input type="file" id="imageUpload" accept=".png,.jpg,.jpeg" />
+
+      <div class="form-row">
+        <div>
+          <label>Width Size</label>
+          <input id="designWidth" type="number" min="0.1" step="0.1" placeholder="Example: 10" />
+        </div>
+        <div>
+          <label>Quantity</label>
+          <select id="quantity"></select>
+        </div>
+      </div>
+<div class="note">Enter width in inches.
+		  <br>Please provide a PNG with transparent background for best print quality.
+      <p>
+  <strong>Recommended Sizes:</strong>
+  Pocket: 4&quot; | S: 9&quot; | M: 10&quot; | L: 11&quot; | XL: 12&quot; | 2XL: 12.5&quot; | 3XL: 13&quot; | 4XL: 14&quot;
+</p>
+		  </div>
+      <div class="image-preview-wrap">
+        <div>
+          <label>Image Preview</label>
+          <div id="imagePreviewBox" class="image-preview">No image uploaded</div>
+        </div>
+        <div>
+          <button class="btn" style="margin-top:28px" onclick="addToCanvas()">Add, Trim &amp; Convert</button>
+          <div class="note">Automatically trim, resize, duplicate, and nest your images to reduce empty spacing.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="box list-box">
+    <h3>Added Listings</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Image</th>
+          <th>File Name</th>
+          <th>Width</th>
+          <th>Height</th>
+          <th>Quantity</th>
+          <th>Remove</th>
+        </tr>
+      </thead>
+      <tbody id="listingTable"></tbody>
+    </table>
+    <div class="button-row">
+      <button class="btn secondary" onclick="printSummary()">Print / Save PDF</button>
+      <button class="btn" onclick="generateGangSheetPNG()">Save 22" Wide 300dpi PNG</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const DPI = 300;              // Final saved PNG quality
+const PREVIEW_DPI = 72;        // Lighter preview to prevent browser freezing
+const SHEET_WIDTH_IN = 22;
+const MAX_HEIGHT_IN = 96;      // 8 feet
+const MAX_HEIGHT_PX = MAX_HEIGHT_IN * DPI;
+const SHEET_WIDTH_PX = SHEET_WIDTH_IN * DPI;
+const SPACING_IN = 0.1;
+const SPACING_PX = SPACING_IN * DPI;
+
+let currentFile = null;
+let currentImageData = "";
+let listings = [];
+
+function moneylessSize(value){
+  return parseFloat(Number(value).toFixed(2)).toString();
+}
+
+function loadQuantity(){
+  const quantity = document.getElementById("quantity");
+  quantity.innerHTML = "";
+  for(let i=1;i<=100;i++) quantity.innerHTML += `<option value="${i}">${i}</option>`;
+}
+
+function showUploadedImage(src){
+  const box = document.getElementById("imagePreviewBox");
+  box.innerHTML = `<img src="${src}" alt="Image preview">`;
+}
+
+function handleImageFile(file){
+  if(!file) return;
+
+  const fileName = (file.name || "").toLowerCase();
+  const allowedTypes = ["image/png", "image/jpeg", "image/jpg"];
+  const allowedExtensions = [".png", ".jpg", ".jpeg"];
+  const typeIsAllowed = allowedTypes.includes(file.type);
+  const extensionIsAllowed = allowedExtensions.some(ext => fileName.endsWith(ext));
+
+  // Some browsers/drag sources provide a blank file.type, so check the extension too.
+  if(!typeIsAllowed && !extensionIsAllowed){
+    alert("Please upload a PNG, JPG, or JPEG file.");
+    return;
+  }
+
+  currentFile = file;
+  const reader = new FileReader();
+  reader.onload = e => {
+    currentImageData = e.target.result;
+    showUploadedImage(currentImageData);
+  };
+  reader.readAsDataURL(file);
+}
+
+const upload = document.getElementById("imageUpload");
+const dropZone = document.getElementById("dropZone");
+
+// Prevent the browser from opening the image if it is dropped slightly outside the upload box.
+["dragenter", "dragover", "dragleave", "drop"].forEach(eventName => {
+  document.addEventListener(eventName, function(e){
+    e.preventDefault();
+    e.stopPropagation();
+  }, false);
+});
+
+upload.addEventListener("change", e => handleImageFile(e.target.files[0]));
+dropZone.addEventListener("click", () => upload.click());
+
+["dragenter", "dragover"].forEach(eventName => {
+  dropZone.addEventListener(eventName, function(){
+    dropZone.classList.add("dragover");
+  });
+});
+
+["dragleave", "drop"].forEach(eventName => {
+  dropZone.addEventListener(eventName, function(){
+    dropZone.classList.remove("dragover");
+  });
+});
+
+dropZone.addEventListener("drop", function(e){
+  let file = null;
+
+  if(e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length){
+    file = e.dataTransfer.files[0];
+  }
+
+  if(!file && e.dataTransfer && e.dataTransfer.items && e.dataTransfer.items.length){
+    for(const item of e.dataTransfer.items){
+      if(item.kind === "file"){
+        file = item.getAsFile();
+        break;
+      }
+    }
+  }
+
+  if(file){
+    handleImageFile(file);
+  }
+});
+
+async function addToCanvas(){
+  const addButton = document.querySelector('button[onclick="addToCanvas()"]');
+  const originalButtonText = addButton ? addButton.innerHTML : "Add, Trim &amp; Convert";
+  if(addButton){ addButton.disabled = true; addButton.innerHTML = "Processing..."; }
+  const width = parseFloat(document.getElementById("designWidth").value);
+  const quantity = parseInt(document.getElementById("quantity").value,10);
+  if(!currentImageData || !currentFile){alert("Please upload an image first."); if(addButton){ addButton.disabled = false; addButton.innerHTML = originalButtonText; } return;}
+  if(!width || width <= 0){alert("Please enter a valid width size in inches."); if(addButton){ addButton.disabled = false; addButton.innerHTML = originalButtonText; } return;}
+  if(!quantity || quantity <= 0){alert("Please select a valid quantity."); if(addButton){ addButton.disabled = false; addButton.innerHTML = originalButtonText; } return;}
+
+  let calculatedHeightIn = 0;
+  let trimmedImageData = "";
+  try{
+    const img = await loadImage(currentImageData);
+    const trimmed = trimTransparentPixels(img);
+    calculatedHeightIn = width * (trimmed.height / trimmed.width);
+    trimmedImageData = trimmed.toDataURL("image/png");
+  } catch(error){
+    alert("We could not process this image. Please try a different PNG, JPG, or JPEG file.");
+    if(addButton){ addButton.disabled = false; addButton.innerHTML = originalButtonText; }
+    return;
+  }
+
+  const testListings = listings.concat([{
+    fileName: currentFile.name,
+    imageData: currentImageData,
+    trimmedImageData: trimmedImageData,
+    widthIn: width,
+    heightIn: calculatedHeightIn,
+    quantity: quantity
+  }]);
+
+  const testPieces = buildPieceSizes(testListings, DPI);
+  const testLayout = layoutPieces(testPieces, SHEET_WIDTH_PX, SPACING_PX);
+
+  if(testLayout.height > MAX_HEIGHT_PX){
+    alert(
+      "This would make the gang sheet taller than 96 inches (8 feet).\n\n" +
+      "Please reduce the quantity or image width."
+    );
+    if(addButton){ addButton.disabled = false; addButton.innerHTML = originalButtonText; }
+    return;
+  }
+
+  listings.push({
+    fileName: currentFile.name,
+    imageData: currentImageData,
+    trimmedImageData: trimmedImageData,
+    widthIn: width,
+    heightIn: calculatedHeightIn,
+    quantity: quantity
+  });
+
+  currentFile = null;
+  currentImageData = "";
+  upload.value = "";
+  document.getElementById("designWidth").value = "";
+  document.getElementById("quantity").selectedIndex = 0;
+  document.getElementById("imagePreviewBox").innerHTML = "No image uploaded";
+  renderListings();
+  await updatePreview();
+  if(addButton){ addButton.disabled = false; addButton.innerHTML = originalButtonText; }
+}
+
+function renderListings(){
+  const table = document.getElementById("listingTable");
+  table.innerHTML = "";
+  listings.forEach((item,index)=>{
+    table.innerHTML += `
+      <tr>
+        <td>${index+1}</td>
+        <td><img class="thumb" src="${item.imageData}"></td>
+        <td>${escapeHTML(item.fileName)}</td>
+        <td>${moneylessSize(item.widthIn)}"</td>
+        <td>${moneylessSize(item.heightIn || 0)}"</td>
+        <td>${item.quantity}</td>
+        <td><button class="btn danger" onclick="removeListing(${index})">X</button></td>
+      </tr>`;
+  });
+  document.getElementById("listingCount").textContent = listings.length;
+}
+
+async function removeListing(index){
+  listings.splice(index,1);
+  renderListings();
+  await updatePreview();
+}
+
+function escapeHTML(value){
+  return String(value).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\"/g,"&quot;").replace(/'/g,"&#039;");
+}
+
+function loadImage(src){
+  return new Promise((resolve,reject)=>{
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+
+function trimTransparentPixels(img){
+  const canvas = document.createElement("canvas");
+  canvas.width = img.naturalWidth || img.width;
+  canvas.height = img.naturalHeight || img.height;
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(img,0,0);
+  const data = ctx.getImageData(0,0,canvas.width,canvas.height).data;
+  let top = null, bottom = null, left = null, right = null;
+  for(let y=0;y<canvas.height;y++){
+    for(let x=0;x<canvas.width;x++){
+      const alpha = data[(y*canvas.width+x)*4+3];
+      if(alpha>0){
+        if(top===null) top=y;
+        bottom=y;
+        if(left===null || x<left) left=x;
+        if(right===null || x>right) right=x;
+      }
+    }
+  }
+  if(top===null) return canvas;
+  const w = right-left+1;
+  const h = bottom-top+1;
+  const trimmed = document.createElement("canvas");
+  trimmed.width = w;
+  trimmed.height = h;
+  trimmed.getContext("2d").drawImage(canvas,left,top,w,h,0,0,w,h);
+  return trimmed;
+}
+
+function buildPieceSizes(items = listings, dpi = DPI){
+  const pieces = [];
+  const spacingPx = Math.round(SPACING_IN * dpi);
+  for(const item of items){
+    const targetW = Math.round(item.widthIn * dpi);
+    const targetH = Math.max(1, Math.round((item.heightIn || 0) * dpi));
+    for(let i=0;i<item.quantity;i++){
+      pieces.push({
+        widthIn: item.widthIn,
+        widthPx: targetW,
+        heightPx: targetH,
+        fileName: item.fileName
+      });
+    }
+  }
+  pieces.sort((a,b)=>a.widthPx-b.widthPx || a.heightPx-b.heightPx);
+  return pieces;
+}
+
+async function buildPieces(dpi = DPI){
+  const pieces = [];
+  for(const item of listings){
+    // Uses the already-trimmed image saved during Add, so the browser does not re-trim every image repeatedly.
+    const img = await loadImage(item.trimmedImageData || item.imageData);
+    const targetW = Math.round(item.widthIn * dpi);
+    const targetH = Math.max(1, Math.round((item.heightIn || (item.widthIn * (img.height / img.width))) * dpi));
+    for(let i=0;i<item.quantity;i++){
+      pieces.push({
+        source: img,
+        widthIn: item.widthIn,
+        widthPx: targetW,
+        heightPx: targetH,
+        fileName: item.fileName
+      });
+    }
+  }
+  pieces.sort((a,b)=>a.widthPx-b.widthPx || a.heightPx-b.heightPx);
+  return pieces;
+}
+
+function layoutPieces(pieces, sheetWidthPx = SHEET_WIDTH_PX, spacingPx = SPACING_PX){
+  // Simple nesting / skyline packing.
+  // This places each image into the lowest available open space,
+  // so smaller images can fill gaps beside taller images.
+  const placements = [];
+  const sortedPieces = pieces.slice().sort((a,b)=>{
+    return b.heightPx - a.heightPx || b.widthPx - a.widthPx;
+  });
+
+  let spaces = [{x:0, y:0, width:sheetWidthPx, height:Number.MAX_SAFE_INTEGER}];
+  let usedHeight = 0;
+
+  for(const p of sortedPieces){
+    let bestIndex = -1;
+    let bestSpace = null;
+
+    // Choose the highest/left-most space that fits.
+    for(let i=0; i<spaces.length; i++){
+      const s = spaces[i];
+      if(p.widthPx <= s.width && p.heightPx <= s.height){
+        if(
+          !bestSpace ||
+          s.y < bestSpace.y ||
+          (s.y === bestSpace.y && s.x < bestSpace.x) ||
+          (s.y === bestSpace.y && s.x === bestSpace.x && s.width < bestSpace.width)
+        ){
+          bestIndex = i;
+          bestSpace = s;
+        }
+      }
+    }
+
+    // Fallback should rarely happen because the first space is full width,
+    // but this prevents the builder from crashing on odd cases.
+    if(bestIndex === -1){
+      bestSpace = {x:0, y:usedHeight + spacingPx, width:sheetWidthPx, height:Number.MAX_SAFE_INTEGER};
+      bestIndex = spaces.length;
+      spaces.push(bestSpace);
+    }
+
+    const placed = {
+      ...p,
+      x: bestSpace.x,
+      y: bestSpace.y
+    };
+    placements.push(placed);
+
+    usedHeight = Math.max(usedHeight, placed.y + placed.heightPx);
+
+    // Remove the used space and create right/bottom spaces around the placed image.
+    spaces.splice(bestIndex, 1);
+
+    const rightWidth = bestSpace.width - p.widthPx - spacingPx;
+    if(rightWidth > 0){
+      spaces.push({
+        x: bestSpace.x + p.widthPx + spacingPx,
+        y: bestSpace.y,
+        width: rightWidth,
+        height: p.heightPx
+      });
+    }
+
+    const bottomHeight = bestSpace.height - p.heightPx - spacingPx;
+    if(bottomHeight > 0){
+      spaces.push({
+        x: bestSpace.x,
+        y: bestSpace.y + p.heightPx + spacingPx,
+        width: bestSpace.width,
+        height: bottomHeight
+      });
+    }
+
+    // Clean and sort spaces so packing stays top-to-bottom, left-to-right.
+    spaces = spaces
+      .filter(s => s.width > 0 && s.height > 0)
+      .sort((a,b)=>a.y-b.y || a.x-b.x);
+
+    // Remove spaces fully contained inside another space.
+    spaces = spaces.filter((s,i)=>{
+      return !spaces.some((o,j)=>{
+        return i !== j &&
+          s.x >= o.x &&
+          s.y >= o.y &&
+          s.x + s.width <= o.x + o.width &&
+          s.y + s.height <= o.y + o.height;
+      });
+    });
+  }
+
+  // After nesting, center the entire packed layout horizontally on the 22 inch sheet.
+  // This keeps the tight nesting, but gives the final gangsheet cleaner left/right margins.
+  if(placements.length){
+    let minX = Infinity;
+    let maxX = 0;
+
+    placements.forEach(p => {
+      minX = Math.min(minX, p.x);
+      maxX = Math.max(maxX, p.x + p.widthPx);
+    });
+
+    const usedWidth = maxX - minX;
+    const offsetX = Math.round((sheetWidthPx - usedWidth) / 2) - minX;
+
+    placements.forEach(p => {
+      p.x += offsetX;
+    });
+  }
+
+  return {placements, height:Math.max(1, usedHeight)};
+}
+
+async function generateCanvas(dpi = DPI){
+  if(listings.length===0){alert("Please add at least one image to the canvas.");return null;}
+  const pieces = await buildPieces(dpi);
+  const sheetWidthPx = Math.round(SHEET_WIDTH_IN * dpi);
+  const spacingPx = Math.round(SPACING_IN * dpi);
+  const maxHeightPx = Math.round(MAX_HEIGHT_IN * dpi);
+  const layout = layoutPieces(pieces, sheetWidthPx, spacingPx);
+
+  if (layout.height > maxHeightPx) {
+    alert(
+      "This gang sheet exceeds the maximum height of 96 inches (8 feet).\n\n" +
+      "Please reduce the quantity or image sizes."
+    );
+    return null;
+  }
+
+  const canvas = document.createElement("canvas");
+  canvas.width = sheetWidthPx;
+  canvas.height = layout.height;
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+
+  // Draw each image at its nested position, starting at the top of the canvas.
+  layout.placements.forEach((p)=>{
+    ctx.drawImage(p.source, p.x, p.y, p.widthPx, p.heightPx);
+  });
+
+  return canvas;
+}
+
+function updateHeightStats(heightIn){
+  const info = document.getElementById("sheetInfo");
+  const fill = document.getElementById("heightMeterFill");
+  const stats = document.getElementById("heightStats");
+  const used = Math.max(0, Number(heightIn || 0));
+  const remaining = Math.max(0, MAX_HEIGHT_IN - used);
+  const percent = Math.min(100, Math.round((used / MAX_HEIGHT_IN) * 100));
+
+  info.textContent = `22" wide x ${moneylessSize(used)}" tall (${percent}% of 96" max)`;
+  if(fill){ fill.style.width = percent + "%"; }
+  if(stats){ stats.textContent = `Used: ${moneylessSize(used)}" | Remaining: ${moneylessSize(remaining)}"`; }
+}
+
+async function updatePreview(){
+  const preview = document.getElementById("sheetPreview");
+  const info = document.getElementById("sheetInfo");
+  if(listings.length===0){
+    preview.innerHTML = '<div class="empty-preview">Gangsheet preview will appear here</div>';
+    preview.style.height = "340px";
+    updateHeightStats(0);
+    return;
+  }
+  const canvas = await generateCanvas(PREVIEW_DPI);
+  if(!canvas) return;
+  const heightIn = canvas.height / PREVIEW_DPI;
+  const displayW = 220;
+  const displayH = Math.max(120, Math.round(displayW * (canvas.height/canvas.width)));
+  preview.style.width = displayW + "px";
+  preview.style.height = displayH + "px";
+  preview.innerHTML = `<img src="${canvas.toDataURL('image/png')}" style="width:100%;height:100%;object-fit:contain;display:block;">`;
+  updateHeightStats(heightIn);
+}
+
+async function generateGangSheetPNG(){
+  const canvas = await generateCanvas(DPI);
+  if(!canvas) return;
+  const heightIn = moneylessSize(canvas.height / DPI);
+  const link = document.createElement("a");
+  link.download = `GangSheet_22x${heightIn}.png`;
+  link.href = canvas.toDataURL("image/png");
+  link.click();
+}
+
+function printSummary(){
+  if(listings.length===0){alert("Please add at least one image before printing.");return;}
+  const rows = listings.map((item,index)=>`
+    <tr>
+      <td>${index+1}</td>
+      <td><img src="${item.imageData}" style="max-width:90px;max-height:90px"></td>
+      <td>${escapeHTML(item.fileName)}</td>
+      <td>${moneylessSize(item.widthIn)}"</td>
+      <td>${moneylessSize(item.heightIn || 0)}"</td>
+      <td>${item.quantity}</td>
+    </tr>`).join("");
+  const printWindow = window.open("","_blank");
+  printWindow.document.write(`<!DOCTYPE html><html><head><title>MCS Gangsheet Summary</title><style>
+    body{font-family:Arial,sans-serif;padding:25px;color:#222}h2{text-align:center}table{width:100%;border-collapse:collapse;margin-top:15px}th,td{border:1px solid #ccc;padding:9px;text-align:left;vertical-align:middle}th{background:#eee}.date{text-align:center;color:#555;font-size:13px;margin-bottom:15px}@media print{button{display:none}}
+  </style></head><body><h2>MCS Gangsheet Builder Summary</h2><div class="date">Created: ${new Date().toLocaleString()}</div><table><thead><tr><th>#</th><th>Image</th><th>File Name</th><th>Width</th><th>Height</th><th>Quantity</th></tr></thead><tbody>${rows}</tbody></table><script>window.onload=function(){window.print();};<\/script></body></html>`);
+  printWindow.document.close();
+}
+
+loadQuantity();
+</script>
+</body>
+</html>
